@@ -1,0 +1,64 @@
+issues
+
+
+fetch all the urls
+
+fetch jobs one by one
+update job if anything changes
+
+
+database
+
+joburls
+
+clear urls everyday once
+
+fetch job and update on db
+update only if it anything changes
+
+database
+JobUrl:{
+name, url, isFetched
+}
+
+job:{
+    basicDetails:{
+        name,
+        formTye,
+        lastDate,
+        totalVacancies
+        location
+        company,
+        qualification_required
+    }
+    statuses:[{
+        type: ADMIT_CARD,
+        createdAT: date
+    }],
+    postUpdateDate
+    dates:{header: [[]],body:[[]]}
+    fee_details:{header: [[]],body:[[]]}
+    vacancyDetails : {header: [[]],body:[[]]}
+    ageLimit
+    selectionProcess
+    howToApply
+    importantLinks
+    others:{
+        name: detailsSame
+    }
+    source:
+    createdAt:
+}
+
+
+websites:
+ jobsarkari.com
+ sarkariresult.com
+ rojgarresult.com
+
+
+ fetch urls --- every hours
+ fetch job  -- every 15 min
+ check jobs if anything update -- every day
+
+
