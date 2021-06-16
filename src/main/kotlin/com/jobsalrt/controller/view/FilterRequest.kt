@@ -3,12 +3,16 @@ package com.jobsalrt.controller.view
 import com.jobsalrt.domain.Type
 
 data class FilterRequest(
-    val filters: Map<String, List<Any>>,
+    val filters: Filters,
     val search: String = "",
     val type: Type? = null
-) {
-    init {
-        filters.filterNot { it.value.isNullOrEmpty() }
-    }
-}
+)
+
+data class Filters(
+    val location: List<String> = emptyList(),
+    val company: List<String> = emptyList(),
+    val qualification: List<String> = emptyList(),
+    val ageLimit: List<Long> = emptyList(),
+    val vacancies: List<Int> = emptyList(),
+)
 

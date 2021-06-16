@@ -53,7 +53,7 @@ class PostService(
     fun getCompanies(company: String): Mono<List<String>> {
         return postRepositoryOps.getOptions("company", company)
             .map {
-                it.qualification?.split(",")?.map { value -> value.trim() } ?: emptyList()
+                it.company?.split(",")?.map { value -> value.trim() } ?: emptyList()
             }
             .collectList()
             .map { list ->

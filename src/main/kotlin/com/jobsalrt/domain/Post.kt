@@ -41,7 +41,7 @@ data class BasicDetails(
     val formType: FormType? = null,
     val advtNo: String? = null,
     val lastDate: LocalDate? = null,
-    val totalVacancies: Long? = null,
+    val vacancies: Long? = null,
     val location: String? = null,
     val company: String? = null,
     val qualification: String? = null,
