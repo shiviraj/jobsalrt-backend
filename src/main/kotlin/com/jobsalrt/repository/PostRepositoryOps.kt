@@ -21,19 +21,20 @@ class PostRepositoryOps(@Autowired val mongoOperations: ReactiveMongoOperations)
         val fields = listOf("basicDetails", "createdAt", "postUpdateDate", "totalViews")
         val criteria = createCriteriaWithFilter(filter)
 
-        val aggregation = Aggregation.newAggregation(
-            Aggregation.match(criteria),
-            Aggregation.unwind("states"),
-            Aggregation.match(criteria),
-            Aggregation.group(*fields.toTypedArray()).push("states").`as`("states"),
-            Aggregation.sort(Sort.by(Sort.Direction.DESC, "states.createdAt")),
-            Aggregation.skip(((page - 1) * limit).toLong()),
-            Aggregation.limit(limit.toLong())
-        )
-        return mongoOperations.aggregate(aggregation, POST_COLLECTION, PostView::class.java)
-            .map {
-                it.id
-            }
+        if (filter.type != null) {
+            val aggregation = Aggregation.newAggregation(
+                Aggregation.match(criteria),
+                Aggregation.unwind("states"),
+                Aggregation.match(criteria),
+                Aggregation.group(*fields.toTypedArray()).push("states").`as`("states"),
+                Aggregation.sort(Sort.by(Sort.Direction.DESC, "states.createdAt")),
+                Aggregation.skip(((page - 1) * limit).toLong()),
+                Aggregation.limit(limit.toLong())
+            )
+            return mongoOperations.aggregate(aggregation, POST_COLLECTION, PostView::class.java).map { it.id }
+        }
+        val query = Query(criteria).with(Sort.by(Sort.Direction.DESC, "createdAt"))
+        return mongoOperations.find(query, Post::class.java, POST_COLLECTION)
     }
 
     fun findPostCount(filter: FilterRequest): Mono<Pair<Long, Double>> {
