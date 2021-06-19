@@ -3,13 +3,12 @@ package com.jobsalrt.service
 import com.jobsalrt.controller.view.FilterRequest
 import com.jobsalrt.domain.Post
 import com.jobsalrt.repository.PostRepositoryOps
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
 @Service
 class PostService(
-    @Autowired private val postRepositoryOps: PostRepositoryOps,
+    val postRepositoryOps: PostRepositoryOps,
 ) {
 
     fun getAllPosts(page: Int, filterRequest: FilterRequest): Mono<List<Post>> {
@@ -61,5 +60,9 @@ class PostService(
                     result.contains(Regex(".*$company.*", RegexOption.IGNORE_CASE))
                 }
             }
+    }
+
+    fun getSearchOptions(search: String): Mono<List<String>> {
+        return postRepositoryOps.getSearchOptions(search)
     }
 }

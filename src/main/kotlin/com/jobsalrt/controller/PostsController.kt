@@ -47,5 +47,10 @@ class PostsController(
     fun getCompanies(@PathVariable company: String): Mono<List<String>> {
         return postService.getCompanies(company)
     }
+
+    @GetMapping("/search-options/{search}")
+    fun getSearchOptions(@PathVariable search: String): Mono<List<String>> {
+        return postService.getSearchOptions(search)
+    }
 }
 

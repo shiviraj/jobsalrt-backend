@@ -34,7 +34,30 @@ data class Post(
     val failures: List<String> = emptyList(),
     var totalViews: Long = 0,
     val postUpdateDate: LocalDateTime = LocalDateTime.now()
-)
+) {
+    fun createSearchOptionsList(search: String): List<String> {
+        val list = mutableListOf<String>()
+        if (basicDetails.name.contains(Regex(".*$search.*", RegexOption.IGNORE_CASE))) {
+            list.add(basicDetails.name)
+        }
+        list.addAll(addOptions(basicDetails.location, search))
+        list.addAll(addOptions(basicDetails.company, search))
+        list.addAll(addOptions(basicDetails.qualification, search))
+        return list.distinct()
+    }
+
+    private fun addOptions(text: String?, search: String): List<String> {
+        val list = mutableListOf<String>()
+        if (!text.isNullOrEmpty()) {
+            val textList = text.split(",").map { it.trim() }
+            textList.forEach {
+                if (it.contains(Regex(".*$search.*", RegexOption.IGNORE_CASE)))
+                    list.add(it)
+            }
+        }
+        return list.distinct()
+    }
+}
 
 data class BasicDetails(
     val name: String = "Anonymous",
