@@ -1,13 +1,11 @@
 package com.jobsalrt.repository
 
 import com.jobsalrt.controller.view.FilterRequest
-import com.jobsalrt.controller.view.Filters
-import com.jobsalrt.domain.BasicDetails
-import com.jobsalrt.domain.POST_COLLECTION
-import com.jobsalrt.domain.Post
-import com.jobsalrt.domain.Status
+import com.jobsalrt.domain.*
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.domain.Sort
 import org.springframework.data.mongodb.core.ReactiveMongoOperations
+import org.springframework.data.mongodb.core.aggregation.Aggregation
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
 import org.springframework.stereotype.Service
@@ -20,17 +18,27 @@ import kotlin.math.ceil
 class PostRepositoryOps(@Autowired val mongoOperations: ReactiveMongoOperations) {
     private val limit = 48
     fun findPosts(filter: FilterRequest, page: Int): Flux<Post> {
-        val query = createQueryWithFilter(filter)
-            .skip(((page - 1) * limit).toLong())
-            .limit(limit)
-
         val fields = listOf("basicDetails", "createdAt", "postUpdateDate", "totalViews")
-        query.fields().include(*fields.toTypedArray())
-        return mongoOperations.find(query, Post::class.java, POST_COLLECTION)
+        val criteria = createCriteriaWithFilter(filter)
+
+        val aggregation = Aggregation.newAggregation(
+            Aggregation.match(criteria),
+            Aggregation.unwind("states"),
+            Aggregation.match(criteria),
+            Aggregation.group(*fields.toTypedArray()).push("states").`as`("states"),
+            Aggregation.sort(Sort.by(Sort.Direction.DESC, "states.createdAt")),
+            Aggregation.skip(((page - 1) * limit).toLong()),
+            Aggregation.limit(limit.toLong())
+        )
+        return mongoOperations.aggregate(aggregation, POST_COLLECTION, PostView::class.java)
+            .map {
+                it.id
+            }
     }
 
     fun findPostCount(filter: FilterRequest): Mono<Pair<Long, Double>> {
-        return mongoOperations.count(createQueryWithFilter(filter), Post::class.java, POST_COLLECTION)
+        val query = Query(createCriteriaWithFilter(filter))
+        return mongoOperations.count(query, Post::class.java, POST_COLLECTION)
             .map { Pair(it, ceil(it.toDouble() / limit)) }
     }
 
@@ -47,24 +55,26 @@ class PostRepositoryOps(@Autowired val mongoOperations: ReactiveMongoOperations)
         return mongoOperations.find(query, Post::class.java, POST_COLLECTION).map { it.basicDetails }
     }
 
-    private fun createQueryWithFilter(filter: FilterRequest): Query {
-        val query = createQueryForFilters(filter.filters)
-        query.addCriteria(Criteria.where(findKey("status")).`is`(Status.VERIFIED))
-        if (filter.type != null)
-            query.addCriteria(Criteria.where(findKey("states.type")).`in`(filter.type))
-        if (filter.search.isNotEmpty()) query.addCriteria(createCriteriaForSearch(filter.search))
-        return query
-    }
-
-    private fun createQueryForFilters(filters: Filters): Query {
-        val criteria = Criteria.where("").andOperator(
+    private fun createCriteriaWithFilter(filter: FilterRequest): Criteria {
+        val filters = filter.filters
+        return Criteria.where("").andOperator(
             criteriaForFilter("location", filters.location),
             criteriaForFilter("qualification", filters.qualification),
             criteriaForFilter("company", filters.company),
             criteriaForVacancies(filters.vacancies),
-            criteriaForAgeLimit(filters.ageLimit)
+            criteriaForAgeLimit(filters.ageLimit),
+            Criteria.where(findKey("status")).`is`(Status.VERIFIED),
+            createCriteriaForSearch(filter.search),
+            createCriteriaForType(filter.type)
         )
-        return Query(criteria)
+    }
+
+    private fun createCriteriaForType(type: Type?): Criteria {
+        val criteria = Criteria.where("")
+        if (type != null) {
+            criteria.orOperator(Criteria.where(findKey("type")).`in`(type))
+        }
+        return criteria
     }
 
     private fun criteriaForVacancies(vacancies: List<Int>): Criteria {
@@ -74,22 +84,26 @@ class PostRepositoryOps(@Autowired val mongoOperations: ReactiveMongoOperations)
                 Criteria.where("basicDetails.vacancies").gte(vacancies.first())
             } else Criteria.where("")
 
-            val maxVacancyCritera = if (vacancies[1] != 5500) {
+            val maxVacancyCriteria = if (vacancies[1] != 5500) {
                 Criteria.where("basicDetails.vacancies").lte(vacancies[1])
             } else Criteria.where("")
 
-            criteria.andOperator(minVacancyCriteria, maxVacancyCritera)
+            criteria.andOperator(minVacancyCriteria, maxVacancyCriteria)
         }
         return criteria
     }
 
-    private fun criteriaForAgeLimit(ageLimit: List<Long>): Criteria {
+    private fun criteriaForAgeLimit(ages: List<Long>): Criteria {
         val criteria = Criteria.where("")
-        if (ageLimit.isNotEmpty()) {
+        if (ages.isNotEmpty()) {
             val today = LocalDateTime.now()
-            criteria.andOperator(
-                Criteria.where("basicDetails.minAgeLimit").lte(today.minusYears(ageLimit.first())),
-                Criteria.where("basicDetails.maxAgeLimit").gte(today.minusYears(ageLimit.first()))
+            criteria.orOperator(
+                *ages.map {
+                    Criteria.where("").andOperator(
+                        Criteria.where("basicDetails.minAgeLimit").lte(today.minusYears(it)),
+                        Criteria.where("basicDetails.maxAgeLimit").gte(today.minusYears(it))
+                    )
+                }.toTypedArray()
             )
         }
         return criteria
@@ -108,13 +122,17 @@ class PostRepositoryOps(@Autowired val mongoOperations: ReactiveMongoOperations)
     }
 
     private fun createCriteriaForSearch(searchText: String): Criteria {
-        return Criteria.where("").orOperator(
-            Criteria.where("basicDetails.url").regex(".*${searchText}.*", "i"),
-            Criteria.where("basicDetails.name").regex(".*${searchText}.*", "i"),
-            Criteria.where("basicDetails.location").regex(".*${searchText}.*", "i"),
-            Criteria.where("basicDetails.company").regex(".*${searchText}.*", "i"),
-            Criteria.where("basicDetails.qualification").regex(".*${searchText}.*", "i"),
-        )
+        val criteria = Criteria.where("")
+        if (searchText.isNotEmpty()) {
+            criteria.orOperator(
+                Criteria.where("basicDetails.url").regex(".*${searchText}.*", "i"),
+                Criteria.where("basicDetails.name").regex(".*${searchText}.*", "i"),
+                Criteria.where("basicDetails.location").regex(".*${searchText}.*", "i"),
+                Criteria.where("basicDetails.company").regex(".*${searchText}.*", "i"),
+                Criteria.where("basicDetails.qualification").regex(".*${searchText}.*", "i"),
+            )
+        }
+        return criteria
     }
 
     private fun findKey(key: String): String {
@@ -123,7 +141,10 @@ class PostRepositoryOps(@Autowired val mongoOperations: ReactiveMongoOperations)
             "location" to "basicDetails.location",
             "qualification" to "basicDetails.qualification",
             "company" to "basicDetails.company",
+            "type" to "states.type"
         )
         return keyMapping[key] ?: key
     }
 }
+
+data class PostView(val id: Post, val states: List<State>)

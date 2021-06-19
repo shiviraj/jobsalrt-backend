@@ -64,12 +64,6 @@ data class Details(
 enum class FormType {
     ONLINE,
     OFFLINE;
-
-    companion object {
-        fun of(type: String): FormType {
-            return if (type.toLowerCase().matches(Regex("online"))) ONLINE else OFFLINE
-        }
-    }
 }
 
 enum class Type {
