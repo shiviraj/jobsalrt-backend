@@ -68,7 +68,8 @@ class PostRepositoryOps(
             }
             .collectList()
             .map { list ->
-                list.flatten().distinct().sortedBy { it.length }.subList(0, 15)
+                val options = list.flatten().distinct().sortedBy { it.length }
+                if (options.size > 10) options.subList(0, 10) else options
             }
     }
 }
