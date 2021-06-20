@@ -1,9 +1,12 @@
 package com.jobsalrt.service
 
 import com.jobsalrt.controller.view.FilterRequest
+import com.jobsalrt.controller.view.PostsType
+import com.jobsalrt.controller.view.RecentlyVisitedRequest
 import com.jobsalrt.domain.Post
 import com.jobsalrt.repository.PostRepositoryOps
 import org.springframework.stereotype.Service
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 @Service
@@ -64,5 +67,26 @@ class PostService(
 
     fun getSearchOptions(search: String): Mono<List<String>> {
         return postRepositoryOps.getSearchOptions(search)
+    }
+
+    fun getAllPostsWithRecentlyVisited(recentlyVisitedRequest: RecentlyVisitedRequest): Mono<List<Post>> {
+        val recentlyViewed = getPostsByUrls(recentlyVisitedRequest.urls)
+        if (recentlyVisitedRequest.type == PostsType.RECENTLY_VIEWED) return recentlyViewed
+        val trendingJobs = postRepositoryOps.getTrendingJobs().collectList()
+        if (recentlyVisitedRequest.type == PostsType.TRENDING_JOBS) return trendingJobs
+        return Mono.zip(postRepositoryOps.newJobs().collectList(), recentlyViewed, trendingJobs)
+            .map {
+                it.t1.addAll(it.t2)
+                it.t1.addAll((it.t3))
+                it.t1.shuffle()
+                it.t1.distinctBy { post -> post.id }.subList(0, 48)
+            }
+    }
+
+    private fun getPostsByUrls(urls: List<String>): Mono<List<Post>> {
+        return Flux.fromIterable(urls)
+            .flatMap {
+                getPostByUrl(it)
+            }.collectList()
     }
 }
