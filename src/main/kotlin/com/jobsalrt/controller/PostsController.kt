@@ -3,6 +3,7 @@ package com.jobsalrt.controller
 import com.jobsalrt.controller.view.BasicDetailsView
 import com.jobsalrt.controller.view.FilterRequest
 import com.jobsalrt.controller.view.PageCountView
+import com.jobsalrt.controller.view.RecentlyVisitedRequest
 import com.jobsalrt.service.PostService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.*
@@ -18,6 +19,16 @@ class PostsController(
     @PostMapping("/page/{page}")
     fun getAllPosts(@PathVariable page: Int, @RequestBody filterRequest: FilterRequest): Mono<List<BasicDetailsView>> {
         return postService.getAllPosts(page, filterRequest)
+            .map { posts ->
+                posts.map {
+                    BasicDetailsView.from(it)
+                }
+            }
+    }
+
+    @PostMapping
+    fun getAllPostsWithRecentlyVisited(@RequestBody recentlyVisitedRequest: RecentlyVisitedRequest): Mono<List<BasicDetailsView>> {
+        return postService.getAllPostsWithRecentlyVisited(recentlyVisitedRequest)
             .map { posts ->
                 posts.map {
                     BasicDetailsView.from(it)
