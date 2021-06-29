@@ -37,7 +37,12 @@ class PostRepositoryOps(
             return mongoOperations.aggregate(aggregation, POST_COLLECTION, PostView::class.java).map { it.id }
         }
 
-        return findPostsAndSortBy("createdAt", page)
+        val query = Query(criteria)
+            .skip(((page - 1) * limit).toLong())
+            .limit(limit)
+            .with(Sort.by(Sort.Direction.DESC, "createdAt"))
+        query.fields().include(*fields.toTypedArray())
+        return mongoOperations.find(query, Post::class.java, POST_COLLECTION)
     }
 
     fun findPostCount(filter: FilterRequest): Mono<Pair<Long, Double>> {
