@@ -17,6 +17,7 @@ class CriteriaUtils(
             criteriaForFilter("location", filters.location),
             criteriaForFilter("qualification", filters.qualification),
             criteriaForFilter("company", filters.company),
+            criteriaForFilter("formType", filters.formType),
             criteriaForVacancies(filters.vacancies),
             criteriaForAgeLimit(filters.ageLimit),
             Criteria.where(keyUtils.find("status")).`is`(Status.VERIFIED),
@@ -68,11 +69,18 @@ class CriteriaUtils(
     private fun criteriaForFilter(key: String, list: List<String>): Criteria {
         val criteria = Criteria.where("")
         if (list.isNotEmpty()) {
-            criteria.orOperator(
-                *list.map {
-                    Criteria.where(keyUtils.find(key)).regex(".*${it}.*", "i")
-                }.toTypedArray()
-            )
+            if (key == "company")
+                criteria.orOperator(
+                    *list.map {
+                        Criteria.where(keyUtils.find(key)).`is`(it)
+                    }.toTypedArray()
+                )
+            else
+                criteria.orOperator(
+                    *list.map {
+                        Criteria.where(keyUtils.find(key)).regex(".*${it}.*", "i")
+                    }.toTypedArray()
+                )
         }
         return criteria
     }

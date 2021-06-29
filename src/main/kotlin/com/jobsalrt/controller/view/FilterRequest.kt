@@ -14,5 +14,6 @@ data class Filters(
     val qualification: List<String> = emptyList(),
     val ageLimit: List<Long> = emptyList(),
     val vacancies: List<Int> = emptyList(),
+    val formType: List<String> = emptyList()
 )
 
