@@ -59,9 +59,13 @@ class PostService(
             }
             .collectList()
             .map { list ->
-                list.flatten().distinct().filter { result ->
-                    result.contains(Regex(".*$company.*", RegexOption.IGNORE_CASE))
-                }
+                list.flatten().distinct()
+                    .filter { result ->
+                        result.contains(Regex(".*$company.*", RegexOption.IGNORE_CASE))
+                    }
+                    .map {
+                        it.replace(Regex("\\(.*\\)", RegexOption.IGNORE_CASE), "").trim()
+                    }
             }
     }
 

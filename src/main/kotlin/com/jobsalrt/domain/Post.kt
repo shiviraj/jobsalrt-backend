@@ -41,7 +41,9 @@ data class Post(
             list.add(basicDetails.name)
         }
         list.addAll(addOptions(basicDetails.location, search))
-        list.addAll(addOptions(basicDetails.company, search))
+        list.addAll(addOptions(basicDetails.company, search).map {
+            it.replace(Regex("\\(.*\\)", RegexOption.IGNORE_CASE), "").trim()
+        })
         list.addAll(addOptions(basicDetails.qualification, search))
         return list.distinct()
     }
