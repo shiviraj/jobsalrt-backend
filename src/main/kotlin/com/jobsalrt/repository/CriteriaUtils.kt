@@ -69,18 +69,11 @@ class CriteriaUtils(
     private fun criteriaForFilter(key: String, list: List<String>): Criteria {
         val criteria = Criteria.where("")
         if (list.isNotEmpty()) {
-            if (key == "company")
-                criteria.orOperator(
-                    *list.map {
-                        Criteria.where(keyUtils.find(key)).`is`(it)
-                    }.toTypedArray()
-                )
-            else
-                criteria.orOperator(
-                    *list.map {
-                        Criteria.where(keyUtils.find(key)).regex(".*${it}.*", "i")
-                    }.toTypedArray()
-                )
+            criteria.orOperator(
+                *list.map {
+                    Criteria.where(keyUtils.find(key)).regex(".*${it}.*", "i")
+                }.toTypedArray()
+            )
         }
         return criteria
     }
