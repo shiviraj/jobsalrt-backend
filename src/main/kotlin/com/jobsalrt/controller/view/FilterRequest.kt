@@ -5,7 +5,8 @@ import com.jobsalrt.domain.Type
 data class FilterRequest(
     val filters: Filters,
     val search: String = "",
-    val type: Type? = null
+    val type: Type? = null,
+    val count: Long = 48
 )
 
 data class Filters(
