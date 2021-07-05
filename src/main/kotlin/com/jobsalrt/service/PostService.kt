@@ -76,14 +76,14 @@ class PostService(
     fun getAllPostsWithRecentlyVisited(recentlyVisitedRequest: RecentlyVisitedRequest): Mono<List<Post>> {
         val recentlyViewed = getPostsByUrls(recentlyVisitedRequest.urls)
         if (recentlyVisitedRequest.type == PostsType.RECENTLY_VIEWED) return recentlyViewed
+
         val trendingJobs = postRepositoryOps.getTrendingJobs().collectList()
         if (recentlyVisitedRequest.type == PostsType.TRENDING_JOBS) return trendingJobs
-        return Mono.zip(postRepositoryOps.newJobs().collectList(), recentlyViewed, trendingJobs)
+
+        return Mono.zip(postRepositoryOps.newJobs().collectList(), trendingJobs)
             .map {
                 it.t1.addAll(it.t2)
-                it.t1.addAll((it.t3))
-                it.t1.shuffle()
-                it.t1.distinctBy { post -> post.id }.subList(0, 48)
+                it.t1.distinct().shuffled().subList(0, 48)
             }
     }
 
