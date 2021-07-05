@@ -1,10 +1,6 @@
 package com.jobsalrt.controller.view
 
-data class RecentlyVisitedRequest(val type: PostsType, var urls: List<String>) {
-    init {
-        if (urls.size > 48) urls = urls.subList(0, 48)
-    }
-}
+data class RecentlyVisitedRequest(val type: PostsType, val urls: List<String>, val count: Int = 36)
 
 enum class PostsType {
     TRENDING_JOBS,
