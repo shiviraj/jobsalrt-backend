@@ -31,15 +31,15 @@ class PostRepositoryOps(
                 Aggregation.match(criteria),
                 Aggregation.group(*fields.toTypedArray()).push("states").`as`("states"),
                 Aggregation.sort(Sort.by(Sort.Direction.DESC, "states.createdAt")),
-                Aggregation.skip(((page - 1) * filter.count)),
-                Aggregation.limit(filter.count)
+                Aggregation.skip(((page - 1) * limit).toLong()),
+                Aggregation.limit(limit.toLong())
             )
             return mongoOperations.aggregate(aggregation, POST_COLLECTION, PostView::class.java).map { it.id }
         }
 
         val query = Query(criteria)
-            .skip(((page - 1) * filter.count))
-            .limit(filter.count.toInt())
+            .skip(((page - 1) * limit).toLong())
+            .limit(limit)
             .with(Sort.by(Sort.Direction.DESC, "createdAt"))
         query.fields().include(*fields.toTypedArray())
         return mongoOperations.find(query, Post::class.java, POST_COLLECTION)
@@ -82,17 +82,18 @@ class PostRepositoryOps(
     }
 
     fun getTrendingJobs(): Flux<Post> {
-        return findPostsAndSortBy("totalViews")
+        return findPostsAndSortBy("totalViews", 1)
     }
 
     fun newJobs(): Flux<Post> {
-        return findPostsAndSortBy("createdAt")
+        return findPostsAndSortBy("createdAt", 1)
     }
 
-    private fun findPostsAndSortBy(sortBy: String): Flux<Post> {
+    private fun findPostsAndSortBy(sortBy: String, page: Int): Flux<Post> {
         val fields = listOf("basicDetails", "createdAt", "postUpdateDate", "totalViews")
         val query = Query(Criteria.where(keyUtil.find("status")).`is`(Status.VERIFIED))
-            .limit(24)
+            .skip(((page - 1) * limit).toLong())
+            .limit(limit)
             .with(Sort.by(Sort.Direction.DESC, sortBy))
         query.fields().include(*fields.toTypedArray())
         return mongoOperations.find(query, Post::class.java, POST_COLLECTION)
