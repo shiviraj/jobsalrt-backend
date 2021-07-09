@@ -26,6 +26,10 @@ class PostService(
         return postRepositoryOps.findByBasicDetailsUrl(url)
     }
 
+    fun updateViews(url: String): Mono<Boolean> {
+        return postRepositoryOps.updateViews(url).map { true }
+    }
+
     fun getLocations(location: String): Mono<List<String>> {
         return postRepositoryOps.getOptions("location", location)
             .map {

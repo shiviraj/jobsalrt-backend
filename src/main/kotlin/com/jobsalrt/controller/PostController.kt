@@ -19,5 +19,10 @@ class PostController(
     fun getPostByUrl(@PathVariable url: String): Mono<Post> {
         return postService.getPostByUrl(url)
     }
+
+    @GetMapping("/{url}/update-views")
+    fun updateViews(@PathVariable url: String): Mono<Boolean> {
+        return postService.updateViews(url)
+    }
 }
 

@@ -54,6 +54,10 @@ class PostRepositoryOps(
     fun findByBasicDetailsUrl(url: String): Mono<Post> {
         val query = Query(Criteria.where("basicDetails.url").`is`(url))
         return mongoOperations.findOne(query, Post::class.java, POST_COLLECTION)
+    }
+
+    fun updateViews(url: String): Mono<Post> {
+        return findByBasicDetailsUrl(url)
             .flatMap {
                 it.totalViews += 1
                 mongoOperations.save(it)
