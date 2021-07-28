@@ -87,7 +87,8 @@ class PostService(
         return Mono.zip(postRepositoryOps.newJobs().collectList(), trendingJobs)
             .map {
                 it.t1.addAll(it.t2)
-                it.t1.distinct().shuffled().subList(0, 48)
+                val posts = it.t1.distinct().shuffled()
+                if (posts.size > 48) posts.subList(0, 48) else posts
             }
     }
 
